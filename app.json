@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "EarnHub",
+    "slug": "earnhub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F8FA"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.earnhub.marketplace"
+    },
+    "android": {
+      "package": "com.earnhub.marketplace"
+    }
+  }
+}
