@@ -29,6 +29,8 @@ export default function App() {
   const [location, setLocation] = useState("Fountain Hill, PA");
   const [pay, setPay] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
 
   useEffect(() => {
     if (!isSupabaseConfigured) { setLoading(false); return; }
@@ -56,16 +58,28 @@ export default function App() {
   }
 
   async function authenticate() {
+    if (authBusy) return;
+    setAuthMessage("");
     if (!email.trim() || password.length < 6) {
-      Alert.alert("Check your details", "Enter your email and a password with at least 6 characters.");
+      setAuthMessage("Enter a valid email and a password with at least 6 characters.");
       return;
     }
-    const result = authMode === "signup"
-      ? await supabase.auth.signUp({ email: email.trim(), password })
-      : await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (result.error) Alert.alert("Account error", result.error.message);
-    else if (authMode === "signup" && !result.data.session) {
-      Alert.alert("Check your email", "Confirm your email address, then sign in.");
+    setAuthBusy(true);
+    try {
+      const result = authMode === "signup"
+        ? await supabase.auth.signUp({ email: email.trim(), password })
+        : await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (result.error) {
+        setAuthMessage(result.error.message);
+      } else if (authMode === "signup" && !result.data.session) {
+        setAuthMessage("Account created. Check your email for a confirmation link, then return here and sign in.");
+      } else if (!result.data.session) {
+        setAuthMessage("No active session was returned. Check your Supabase email confirmation settings and try again.");
+      }
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+    } finally {
+      setAuthBusy(false);
     }
   }
 
@@ -117,7 +131,8 @@ export default function App() {
         <Text style={styles.heading}>{authMode === "signup" ? "Create your account" : "Welcome back"}</Text>
         <TextInput style={styles.input} placeholder="Email address" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
         <TextInput style={styles.input} placeholder="Password (6+ characters)" secureTextEntry value={password} onChangeText={setPassword} />
-        <TouchableOpacity style={styles.primary} onPress={authenticate}><Text style={styles.primaryText}>{authMode === "signup" ? "Create account" : "Sign in"}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.primary} onPress={authenticate} disabled={authBusy}><Text style={styles.primaryText}>{authBusy ? "Please wait..." : authMode === "signup" ? "Create account" : "Sign in"}</Text></TouchableOpacity>
+        {!!authMessage && <Text accessibilityRole="alert" style={styles.authMessage}>{authMessage}</Text>}
         <TouchableOpacity onPress={() => setAuthMode(authMode === "signup" ? "signin" : "signup")}><Text style={styles.link}>{authMode === "signup" ? "Already have an account? Sign in" : "New to EarnHub? Create an account"}</Text></TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -199,6 +214,7 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: "#176B52", borderRadius: 11, padding: 15, alignItems: "center", marginTop: 8, marginBottom: 12 },
   primaryText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   link: { color: "#176B52", textAlign: "center", padding: 12, fontWeight: "700" },
+  authMessage: { color: "#A12B2B", backgroundColor: "#FCECEC", borderRadius: 10, padding: 12, marginTop: 8, lineHeight: 20 },
   jobCard: { backgroundColor: "#FFFFFF", borderRadius: 15, padding: 16, marginBottom: 13, borderWidth: 1, borderColor: "#E8ECEF" },
   jobTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   category: { color: "#176B52", backgroundColor: "#E7F2ED", overflow: "hidden", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, fontSize: 11, fontWeight: "800" },
